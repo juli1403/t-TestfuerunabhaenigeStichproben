@@ -1,0 +1,240 @@
+---
+title: "t-Test für unabhängige Stichproben"
+output: html_notebook
+---
+
+
+
+```{r}
+Workinghours <- read.csv("C:/Users/A..../Workinghours.csv") # Einlesen - Link in der Nachrichtenbox
+Workinghours$income <-log(Workinghours$income) # log, damit die Daten nicht Schief sind - wichtig für die Normalverteilung .
+
+Workinghours <- subset(Workinghours, income > 2 & income< 8) # Es werden Einkommen von 2 bis 8 betrachtet 
+Workinghours <- na.omit(Workinghours) # Missing Values werden gelöscht 
+Workinghours$owned <- as.factor(Workinghours$owned) # werden als Buchstaben behandelt in R - nicht mehr als Zahlen 
+```
+
+
+```{r}
+head(Workinghours)
+```
+
+```{r}
+nrow(Workinghours)
+```
+
+
+# UNSERE TO-Do´s
+
+    Hypothese
+    Voraussetzungen des t-Tests für unabhängige Stichproben
+    Test auf Normalverteilung
+    Deskriptive Statistiken
+    Test auf Varianzhomogenität (Levene-Test)
+    Ergebnisse des t-Tests für unabhängige Stichproben
+    Berechnung der Effektstärke
+    Eine Aussage
+
+#	Hypothese 
+H1: Es gibt einen Unterschied zwischen dem log. Einkommen (income) von Hausbesitzern und Nicht-Hausbesitzern (owned).
+$$M_{Hausbesitzer}\neq M_{Nicht-Hausbesitzer}$$
+Das M steht für den Mittelwert .. Wir schauen uns der Unterschied der Mittelwert zwischen den beiden Gruppen an. 
+ 
+H0: Es gibt **keinen** Unterschied zwischen dem log. Einkommen (income) von Hausbesitzern und Nicht-Hausbesitzern (owned).
+
+
+
+$$M_{Hausbesitzer}= M_{Nicht-Hausbesitzer}$$
+
+
+#	Voraussetzungen des t-Tests für unabhängige Stichproben
+
+
+Die abhängige Variable ist min. intervallskaliert -> log. income(AV) ist metrisch. 
+
+Es liegt eine unabhängige Variable vor, mittels der die beiden zu vergleichenden Gruppen gebildet werden. -> Ja, Hausbesitzer und Nicht-Hausbesitzer
+
+
+Das untersuchte Merkmal ist in den Grundgesamtheiten der beiden Gruppen normalverteilt -> siehe Histogramm, bzw. QQplot
+
+Homogenität der Varianzen: Die Gruppen kommen aus Grundgesamtheiten mit annähernd identischer Varianz -> siehe Levene-Test
+
+
+Die einzelnen Messwerte sind voneinander unabhängig (das Verhalten einer Versuchsperson hat keinen Einfluss auf das Verhalten einer anderen) -> ist gegeben.
+
+Das untersuchte Merkmal ist in den Grundgesamtheiten der beiden Gruppen normalverteilt -> siehe Histogramm, bzw. QQplot
+
+--> Prüfung der Normalverteilung ist Part der Voraussetzungsprüfung.. :)
+
+Ich hab zwei Varianten vorbereitet .. 
+
+Variante 1- mit Histogramm und ggplot
+variante 2: - QQplot 
+
+
+
+
+## Prüfung der Normalverteilung mithilfe des Histogramms
+
+
+
+```{r}
+# Wir benötigen diese zwei Libraries
+
+library(dplyr)
+library(ggplot2)
+# ggplot ist sehr aufwendig - daher nicht verunsichtert sein.. :) 
+
+
+#  %>% -> das ist eine Pipe und wird gelesen wie dann.... 
+
+
+  Workinghours %>% # Datensatz, dann
+  group_by(owned) %>% # Gruppiere nach Hausbesitzer und dann
+  ggplot  (aes(income)) +  #die metrische oder AV in die Klammer 
+  geom_histogram(aes(fill = owned)) + # mach ein Histogramm  und teile nach Hausbesitzer .. 
+  facet_wrap(~owned) + # teilt die Histogramme
+  theme_classic()+
+  labs(x= "owned",y = "Anzahl" ) # Achsenbezeichnung
+```
+Die Daten sind normalverteilt, etwas schief, aber ok... 
+
+
+## Prüfung der Normalverteilung mithilfe des QQPlots 
+
+```{r}
+library(car) #-Wir brauchen Car
+#(AV/metrische ~ UV/dichotome)
+qqPlot(income ~ owned, data = Workinghours, # Datensatz
+       layout=c(1, 2)) # ein Zeile und zwei Diagramme
+```
+
+Die Normalverteilung ist ok, wird angenommen. 
+
+
+Ist ok .. nicht perfekt.. die Punkte sollten auf der blauen durchgezogenen Linie
+liegen.
+
+
+
+#	Deskriptive Statistiken
+
+ Schauen wir uns erst das Ergebnis an, dann denn Code.. ok ? 
+ Schauen wir uns den Code an...
+
+```{r}
+#library(dplyr)
+Workinghours %>% # Nehme den Datensatz und dann ..
+group_by(owned) %>% # Gruppiere dann
+  summarize(Anzahl = n(), Mittelwert= mean(income), Median = median(income), Standardabweichung = sd(income)) %>% # dann mach die Anzahl, berechne die Mittelwerte, berechne den Median und dann den Standardabweichung 
+  mutate_if(is.numeric, round, 2) # dann runde auf 2 Nachkommastellen
+
+
+
+
+```
+0 - kein Hausbesitzer
+1 - Hausbesitzer
+
+
+Es zeigt sich fuer diese Stichprobe einen Mittelwertsunterschied. Das log.Einkommen bei Nicht-Hausbesitzer ist niedriger (M = 5.01, SD = .71, n = 1058) als bei Hausbesitzer (M = 5.63, SD = .67, n = 2287).
+
+Es gibt einen Unterschied zwischen den Gruppen. 
+Die Gruppengröße ist unterschiedlich  
+Der Median ist auch unterschiedlich.. 
+
+Der Unterschied zwischen Mittelwert und Median sollte man sich auch anschauen - als Indikator für Ausreißer.
+-5.01 vs. 5.08 in Bezug  zur  SD 0.71  - nicht sehr viel..
+-5.63 vs. 5.68 in Bezug  zur SD 0.67 - nicht sehr viel ... 
+
+Ausreißer verändern die Daten nichts so stark...
+
+#	Test auf Varianzhomogenität (Levene-Test)
+
+Der t-Test für unabhängige Gruppen hat als Vorausetzung die Varianzhomogenität. <br>
+Varianzheterogenität --> unterschiedliche Varianzen<br>
+Varianzhomogenität --> ähnlich / "gleich" Varianzen<br>
+
+Der Levene-Test verwendet die Nullhypothese, dass sich die beiden Varianzen nicht unterscheiden. Daher bedeutet ein nicht signifikantes Ergebnis, dass sich die Varianzen nicht unterscheiden und also Varianzhomogenität vorliegt. Ist der Test signifikant, so wird von Varianzheterogenität ausgegangen.
+
+
+```{r}
+#library(car)
+# AV/metrische ~ UV / dichotome  - Center kann entweder mean oder median sein
+leveneTest(Workinghours$income, Workinghours$owned, center = mean)
+```
+
+
+Also es ist zuerkennen, das **Varianzheterogenität** vorliegt, da der Levene-Test  signifikant ist. Daher können wir von ungleichen Varianzen ausgehen (F(1, 3343) = 7.161 , p = .007). Es ist daher notwendig eine Welch-Korrektur durchzuführen.
+
+Berichterstattung:  F(df,df) = F-value, p= Pr(>F) )
+                    F(1, 3343) = 7.161, p= 0.007 )
+
+p < 0.05 => Ergebnis Signifikant --> Varianzen heterogen ->Mit Welch-Korrektur
+
+p > 0.05 => Ergebnis nicht Signifikant --> Varianzen homogen --> H0 mit Annahme Var1=Var2 -->Ohne Welch-Korrektur
+
+
+#	Ergebnisse des t-Tests für unabhängige Stichproben
+
+## Variante 1: ohne Welch - Korrektur - NICHT RELEVANT 
+```{r}
+
+test1<- t.test(Workinghours$income~Workinghours$owned, var.eq = TRUE, con= 0.95, alt = "two.sided")
+test1
+```
+Die Teststatistik betraegt t = -24.549 und der zugehörige Signifikanzwert p = .000. Damit ist der Unterschied signifikant: Mittelwerte der beiden Arten der Hausbesitzer unterscheiden sich im log. Einkommen(t(3343) = -24.549, p = .000, n = 3345)
+
+
+## Variante 2:  MIT Welch-Korrektur
+
+```{r}
+
+welch<- t.test(Workinghours$income~Workinghours$owned,                                         #Av(metrische)~UV(dichotome) 
+               var.eq = FALSE,  # Sind die Varianzen (var) gleich(equal)? NEIN -                 wegen Hetro..  
+               con= 0.95,  # 5%  sig.niveau
+               alt = "two.sided") # zweiseitiges/ ungerichtet
+welch
+```
+
+Die Teststatistik betraegt t = -23.915 und der zugehörige Signifikanzwert p = .000. Damit ist der Unterschied signifikant: Mittelwerte der beiden Arten der Hausbesitzer unterscheiden sich im log. Einkommen
+(t(1931.4) = -23.915, p = .000,    n = 3345).
+(t(df)     = t,       p = p-value, n= anzahl)
+
+
+
+#	Berechnung der Effektstärke
+
+
+```{r}
+library(effsize) # Wir benötigen die Library effzige 
+
+cohen <- cohen.d(d = Workinghours$income, f= Workinghours$owned)
+         #cohen.d(d = metrische/ AV,      f= dichotome/UV)
+#cohen
+sprintf("Effektstärke: %f",abs(cohen$estimate))
+# sprintf - hat ne hübsche Aussage in R 
+# abs macht den Betrag  und in cohen$estimaten steckt die Info, wie hoch das d ist... 
+
+```
+
+Interpretation von d nach Cohen (1988):
+
+|d| = 0.2 entspricht einem kleinen Effekt
+|d| = 0.5 entspricht einem mittleren Effekt
+|d| = 0.8 entspricht einem großen Effekt
+Schauen wir uns die Interpretation an.. 
+
+0.9 >0.5 und damit stark
+
+Damit entspricht eine Effektstaerke von 0.9 einem starken Effekt.
+
+
+
+#	Eine Aussage
+
+as log.Einkommen bei Nicht-Hausbesitzer ist sig. niedriger (M = 5.01, SD = .71, n = 1058) als bei Hausbesitzer (M = 5.63, SD = .67, n = 2287)(t(1931.4) = -23.915, p = .000, n = 3345). -->  Deskriptive Statistiken + Ergebnisse des t-Tests für unabhängige Stichproben
+
+Die Effektstärke liegt bei d = .9 und entspricht damit einem starken Effekt nach Cohen (1988).  -> Berechnung der Effektstärke
+H0 kann verworfen werden.
+
